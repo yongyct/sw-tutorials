@@ -1,4 +1,5 @@
 **/data/*
 **/model/*
+**/secrets/*
 **/.ipynb_checkpoints/*
 **/__pycache__/*
