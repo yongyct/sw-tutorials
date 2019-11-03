@@ -51,6 +51,7 @@ def main():
             axis=1,
             inplace=True
         )
+        df.index.names = ['date']
         df = data_patching(df, ticker)
         df.to_csv('{}/{}.csv'.format(CSVS_PATH, ticker))
     
