@@ -3,3 +3,9 @@
 **/secrets/*
 **/.ipynb_checkpoints/*
 **/__pycache__/*
+
+# dbt stuff
+**/dbt/**/logs/
+**/dbt/**/target/
+**/dbt/**/dbt_packages/
+
