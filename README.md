@@ -1,2 +1,2 @@
-# AI Tutorials
-Space to document AI tutorials
+# Tutorials
+Space to document software tutorials
