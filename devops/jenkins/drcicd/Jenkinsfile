@@ -4,7 +4,7 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'echo ================= RUNNING INIT STEPS =================='
-                sh 'mv devops/jenkins/drcicd/*/* .; rm -rf README.md aiml data-engineering devops'
+                sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
                 sh 'echo $APPSERVER; ls -lart'
             }
         }
