@@ -1,6 +1,13 @@
 pipeline {
     agent any
     stages {
+        stage('Init') {
+            steps {
+                sh 'cd devops/jenkins/drcicd/'
+                sh 'echo $APPSERVER'
+                sh 'echo $MODEL_ARGS'
+            }
+        }
         stage('DRUM Testing') {
             steps {
                 sh 'drum --version'
