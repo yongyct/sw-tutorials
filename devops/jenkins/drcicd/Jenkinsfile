@@ -19,13 +19,14 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING CM UPLOAD STEPS =================='
                 withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
-                    sh '''
-                        curl -X POST $APPSERVER/api/v2/customModels/ \\
+                    def cm = sh returnStdout:true, script: '''
+                        curl -s -X POST $APPSERVER/api/v2/customModels/ \\
                             -H "Authorization: bearer $drapikey" \\
                             -H "Content-Type: application/json" \\
                             -H "Accept: application/json" \\
                             -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
-                    '''     
+                    '''
+                    sh 'echo $cm'
                 }
                 sh '''
                     pwd
@@ -36,7 +37,7 @@ pipeline {
         stage('Perform API Testing'){
             steps {
                 sh 'echo ================= RUNNING API TESTING STEPS =================='
-                sh 'curl ifconfig.me'
+                sh 'curl -s ifconfig.me'
             }
         }
     }
