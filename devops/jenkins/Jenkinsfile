@@ -1,0 +1,9 @@
+pipeline {
+    stages {
+        stage('Test DataRobot Connectivity') {
+            steps {
+                sh echo 'HELLO WORLD'
+            }
+        }
+    }
+}
