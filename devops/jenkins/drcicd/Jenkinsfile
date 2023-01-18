@@ -5,7 +5,7 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING INIT STEPS =================='
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf README.md aiml data-engineering devops'
-                sh 'echo $APPSERVER'
+                sh 'echo $APPSERVER; ls -lart'
             }
         }
         stage('DRUM Testing') {
