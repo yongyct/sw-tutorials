@@ -1,5 +1,6 @@
 pipeline {
     agent any
+    
     stages {
         stage('Init') {
             steps {
@@ -36,12 +37,12 @@ pipeline {
                 sh 'curl ifconfig.me'
             }
         }
+    }
 
-        post {
-            always {
-                echo "DR CICD PIPELINE DONE"
-                deleteDir()
-            }
+    post {
+        always {
+            echo "DR CICD PIPELINE DONE"
+            deleteDir()
         }
     }
 }
