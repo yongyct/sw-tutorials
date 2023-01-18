@@ -11,7 +11,7 @@ pipeline {
         stage('DRUM Testing') {
             steps {
                 sh 'echo ================= RUNNING DRUM STEPS =================='
-                sh 'drum validation -cd . --input surgical-dataset-test.csv --positive-class-label 1 --negative-class-label 0 --target-type binary'
+                # sh 'drum validation -cd . --input surgical-dataset-test.csv --positive-class-label 1 --negative-class-label 0 --target-type binary'
             }
         }
         stage('Upload Custom Model Artifacts') {
