@@ -24,7 +24,7 @@ pipeline {
                             -H "Authorization: bearer $drapikey" \\
                             -H "Content-Type: application/json" \\
                             -H "Accept: application/json" \\
-                            -d \'{"name": "Jenkins Test","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
+                            -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''     
                 }
                 sh '''
