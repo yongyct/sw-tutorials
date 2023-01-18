@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-                sh 'cd devops/jenkins/drcicd/'
+                sh 'mv devops/jenkins/drcicd/* .; rm -rf README.md aiml data-engineering devops'
                 sh 'echo $APPSERVER'
                 sh 'echo $MODEL_ARGS'
             }
