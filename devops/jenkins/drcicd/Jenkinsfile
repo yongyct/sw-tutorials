@@ -3,20 +3,20 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-                sh '================= RUNNING INIT STEPS =================='
+                sh 'echo ================= RUNNING INIT STEPS =================='
                 sh 'mv devops/jenkins/drcicd/* .; rm -rf README.md aiml data-engineering devops'
                 sh 'echo $APPSERVER'
             }
         }
         stage('DRUM Testing') {
             steps {
-                sh '================= RUNNING DRUM STEPS =================='
+                sh 'echo ================= RUNNING DRUM STEPS =================='
                 sh 'drum validation -cd src --input test-data/surgical-dataset-test.csv --positive-class-label 1 --negative-class-label 0 --target-type binary'
             }
         }
         stage('Upload Custom Model Artifacts') {
             steps {
-                sh '================= RUNNING CM UPLOAD STEPS =================='
+                sh 'echo ================= RUNNING CM UPLOAD STEPS =================='
                 withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
                     sh '''
                         curl -X POST $APPSERVER/api/v2/ping -H "Authorization: bearer $drapikey" \\
@@ -38,7 +38,7 @@ pipeline {
         }
         stage('Perform API Testing'){
             steps {
-                sh '================= RUNNING API TESTING STEPS =================='
+                sh 'echo ================= RUNNING API TESTING STEPS =================='
                 sh 'curl ifconfig.me'
             }
         }
