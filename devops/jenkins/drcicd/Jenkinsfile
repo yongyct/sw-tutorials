@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     stages {
         stage('Init') {
             steps {
@@ -20,8 +20,10 @@ pipeline {
                 sh 'echo ================= RUNNING CM UPLOAD STEPS =================='
                 withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
                     sh '''
-                        curl -X POST $APPSERVER/api/v2/customModels -H "Authorization: bearer $drapikey" \\
+                        curl -X POST $APPSERVER/api/v2/customModels \\
+                            -H "Authorization: bearer $drapikey" \\
                             -H "Content-Type: application/json" \\
+                            -H "Accept: application/json" \\
                             -d\'{"name": "Jenkins Test","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''     
                 }
