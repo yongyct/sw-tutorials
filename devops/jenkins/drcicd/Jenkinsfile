@@ -29,7 +29,8 @@ pipeline {
                             -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''
                         def cmJson = readJSON text: cmString
-                        echo cmJson
+                        echo cmString
+                        echo cmJson['id']
                     }
                     
                 }
