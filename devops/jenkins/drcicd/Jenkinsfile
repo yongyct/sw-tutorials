@@ -28,7 +28,7 @@ pipeline {
                             -H "Accept: application/json" \\
                             -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''
-                        def cmJson = readJson text: cmString
+                        def cmJson = readJSON text: cmString
                         echo cmJson
                     }
                     
