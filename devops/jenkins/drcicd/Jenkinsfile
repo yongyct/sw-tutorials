@@ -68,9 +68,9 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING CM BUILD STEPS =================='
                 script {
-                    def buildTimeout = 600000
+                    def buildTimeout = 600
                     def buildTime = 0
-                    def buildPollInterval = 5000
+                    def buildPollInterval = 5
 
                     def cmBuildString = sh returnStdout:true, script: """
                     #!/bin/bash
@@ -110,9 +110,9 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING CM TEST STEPS =================='
                 script {
-                    def testTimeout = 600000
+                    def testTimeout = 600
                     def testTime = 0
-                    def testPollInterval = 5000
+                    def testPollInterval = 5
                     
                     def cmTestString = sh returnStdout:true, script: """
                     #!/bin/bash
