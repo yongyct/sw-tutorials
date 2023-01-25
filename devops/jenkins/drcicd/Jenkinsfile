@@ -130,7 +130,7 @@ pipeline {
                     while (cmTestStatus in ['not_tested', 'queued', 'in_progress'] && testTime < testTimeout) {
                         def cmTestStatusString = sh returnStdout:true, script: """
                         #!/bin/bash
-                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmTestStatusId}/ \\
+                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmTestStatusId} \\
                             -H "Authorization: bearer $DR_API_KEY" \\
                             -H "Accept: application/json"
                         """
