@@ -39,7 +39,7 @@ pipeline {
                     cmId = cmJson['id']
                     echo "custom model id = " + cmId
 
-                    def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
+                    def cmFilesLs = sh returnStdout:true, script: 'ls *.{pkl,py}' //'ls *.{txt,pkl,py}'
                     def cmFiles = cmFilesLs.split('\n')
                     def cmFilesCurlArgs = ''
                     for (cmFile in cmFiles) {
@@ -67,41 +67,41 @@ pipeline {
         stage('Build Custom Model Dependencies') {
             steps {
                 sh 'echo ================= RUNNING CM BUILD STEPS =================='
-                script {
-                    def buildTimeout = 600
-                    def buildTime = 0
-                    def buildPollInterval = 5
+                // script {
+                //     def buildTimeout = 600
+                //     def buildTime = 0
+                //     def buildPollInterval = 5
 
-                    def cmBuildString = sh returnStdout:true, script: """
-                    #!/bin/bash
-                    curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
-                        -H 'Authorization: bearer $DR_API_KEY' \\
-                        -H 'Accept: application/json'
-                    """
-                    echo cmBuildString
-                    def cmBuildJson = readJSON text: cmBuildString
-                    cmBuildStatus = cmBuildJson['buildStatus']
-                    echo "custom model build status = " + cmBuildStatus
+                //     def cmBuildString = sh returnStdout:true, script: """
+                //     #!/bin/bash
+                //     curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                //         -H 'Authorization: bearer $DR_API_KEY' \\
+                //         -H 'Accept: application/json'
+                //     """
+                //     echo cmBuildString
+                //     def cmBuildJson = readJSON text: cmBuildString
+                //     cmBuildStatus = cmBuildJson['buildStatus']
+                //     echo "custom model build status = " + cmBuildStatus
 
-                    while (cmBuildStatus in ['submitted', 'processing'] && buildTime < buildTimeout) {
-                        cmBuildString = sh returnStdout:true, script: """
-                        #!/bin/bash
-                        curl -s -X GET $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
-                            -H 'Authorization: bearer $DR_API_KEY' \\
-                            -H 'Accept: application/json'
-                        """
-                        cmBuildJson = readJSON text: cmBuildString
-                        cmBuildStatus = cmBuildJson['buildStatus']
-                        echo "custom model build status = " + cmBuildStatus
-                        sleep(buildPollInterval)
-                        buildTime += buildPollInterval
-                    }
+                //     while (cmBuildStatus in ['submitted', 'processing'] && buildTime < buildTimeout) {
+                //         cmBuildString = sh returnStdout:true, script: """
+                //         #!/bin/bash
+                //         curl -s -X GET $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                //             -H 'Authorization: bearer $DR_API_KEY' \\
+                //             -H 'Accept: application/json'
+                //         """
+                //         cmBuildJson = readJSON text: cmBuildString
+                //         cmBuildStatus = cmBuildJson['buildStatus']
+                //         echo "custom model build status = " + cmBuildStatus
+                //         sleep(buildPollInterval)
+                //         buildTime += buildPollInterval
+                //     }
 
-                    if (cmBuildStatus != 'success') {
-                        error "Custom Model Build Failed!"
-                    }
+                //     if (cmBuildStatus != 'success') {
+                //         error "Custom Model Build Failed!"
+                //     }
 
-                }
+                // }
                 
             }
         }
