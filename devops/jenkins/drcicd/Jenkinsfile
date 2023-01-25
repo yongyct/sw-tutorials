@@ -172,7 +172,7 @@ pipeline {
 
                     def cmDeploymentString = sh returnStdout:true, script: """
                     #!/bin/bash
-                    curl -s -X POST $APP_SERVER/api/v2/deployment/fromModelPackage/ \\
+                    curl -s -X POST $APP_SERVER/api/v2/deployments/fromModelPackage/ \\
                         -H 'Authorization: bearer $DR_API_KEY' \\
                         -H 'Content-Type: application/json' \\
                         -H 'Accept: application/json' \\
