@@ -15,7 +15,6 @@ pipeline {
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
                 sh 'echo $CME_ID'
                 sh 'echo $APP_SERVER; ls -lart'
-                sh 'echo $DR_API_KEY'
             }
         }
         stage('DRUM Testing') {
@@ -27,45 +26,43 @@ pipeline {
         stage('Upload Custom Model Artifacts') {
             steps {
                 sh 'echo ================= RUNNING CM UPLOAD STEPS =================='
-                withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
-                    script {
-                        def cmString = sh returnStdout:true, script: '''
-                        #!/bin/bash
-                        curl -s -X POST $APP_SERVER/api/v2/customModels/ \\
-                            -H "Authorization: bearer $drapikey" \\
-                            -H "Content-Type: application/json" \\
-                            -H "Accept: application/json" \\
-                            -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
-                        '''
-                        def cmJson = readJSON text: cmString
-                        echo cmString
-                        cmId = cmJson['id']
-                        echo "custom model id = " + cmId
+                script {
+                    def cmString = sh returnStdout:true, script: '''
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModels/ \\
+                        -H "Authorization: bearer $DR_API_KEY" \\
+                        -H "Content-Type: application/json" \\
+                        -H "Accept: application/json" \\
+                        -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
+                    '''
+                    def cmJson = readJSON text: cmString
+                    echo cmString
+                    cmId = cmJson['id']
+                    echo "custom model id = " + cmId
 
-                        def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
-                        def cmFiles = cmFilesLs.split('\n')
-                        def cmFilesCurlArgs = ''
-                        for (cmFile in cmFiles) {
-                            cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
-                        }
-
-                        echo cmFilesCurlArgs
-
-                        def cmVersionString = sh returnStdout:true, script: """
-                        #!/bin/bash
-                        curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/ \\
-                            -H 'Authorization: bearer ${drapikey}' \\
-                            -H 'Content-Type: multipart/form-data' \\
-                            -H 'Accept: application/json' \\
-                            -F 'baseEnvironmentId=$CME_ID' \\
-                            ${cmFilesCurlArgs}
-                        """
-                        // def cmVersionJson = readJSON text: cmVersionString
-                        echo cmVersionString
-
+                    def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
+                    def cmFiles = cmFilesLs.split('\n')
+                    def cmFilesCurlArgs = ''
+                    for (cmFile in cmFiles) {
+                        cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
                     }
-                    
+
+                    echo cmFilesCurlArgs
+
+                    def cmVersionString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: multipart/form-data' \\
+                        -H 'Accept: application/json' \\
+                        -F 'baseEnvironmentId=$CME_ID' \\
+                        ${cmFilesCurlArgs}
+                    """
+                    // def cmVersionJson = readJSON text: cmVersionString
+                    echo cmVersionString
+
                 }
+                    
             }
         }
         stage('Perform API Testing'){
@@ -79,9 +76,7 @@ pipeline {
     post {
         always {
             echo "DR CICD PIPELINE DONE"
-            withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
-                sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer ${drapikey}'"
-            }
+            sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer $DR_API_KEY'"
             deleteDir()
         }
     }
