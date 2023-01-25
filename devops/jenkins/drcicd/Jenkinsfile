@@ -1,8 +1,8 @@
+// define global vars for use across stages
+def cmId
+
 pipeline {
     agent any
-
-    // some global variables
-    def cmId = ''
 
     stages {
         stage('Init') {
@@ -39,7 +39,7 @@ pipeline {
 
                         def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
                         def cmFiles = cmFilesLs.split('\n')
-                        def cmFilesCurlArgs = ''
+                        def cmFilesCurlArgs
                         for (cmFile in cmFiles) {
                             cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
                         }
