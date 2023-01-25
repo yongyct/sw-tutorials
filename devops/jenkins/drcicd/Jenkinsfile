@@ -94,7 +94,7 @@ pipeline {
     post {
         always {
             echo "DR CICD PIPELINE DONE"
-            sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer $DR_API_KEY'"
+            // sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer $DR_API_KEY'"
             deleteDir()
         }
     }
