@@ -68,19 +68,86 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING CM BUILD STEPS =================='
                 script {
+                    def buildTimeout = 600000
+                    def buildTime = 0
+                    def buildPollInterval = 5000
+
                     def cmBuildString = sh returnStdout:true, script: """
                     #!/bin/bash
                     curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
-                        -H "Authorization: bearer $DR_API_KEY" \\
-                        -H "Accept: application/json"
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Accept: application/json'
                     """
                     echo cmBuildString
                     def cmBuildJson = readJSON text: cmBuildString
                     cmBuildStatus = cmBuildJson['buildStatus']
                     echo "custom model build status = " + cmBuildStatus
 
+                    while (cmBuildStatus in ['submitted', 'processing'] && buildTime < buildTimeout) {
+                        cmBuildString = sh returnStdout:true, script: """
+                        #!/bin/bash
+                        curl -s -X GET $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                            -H 'Authorization: bearer $DR_API_KEY' \\
+                            -H 'Accept: application/json'
+                        """
+                        cmBuildJson = readJSON text: cmBuildString
+                        cmBuildStatus = cmBuildJson['buildStatus']
+                        echo "custom model build status = " + cmBuildStatus
+                        sleep(buildPollInterval)
+                        buildTime += buildPollInterval
+                    }
+
                 }
+
+                if (cmBuildStatus == 'failed') {
+                    error "Custom Model Build Failed!"
+                }
+                
+            }
+        }
+        stage('Test Custom Model') {
+            //TODO: handle and fill in datasetId
+            steps {
+                sh 'echo ================= RUNNING CM TEST STEPS =================='
+                script {
+                    def testTimeout = 600000
+                    def testTime = 0
+                    def testPollInterval = 5000
                     
+                    def cmTestString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModelTests/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"customModelId": "$cmId","customModelVersionId":"$cmVersionId","datasetId": "$TEST_DS_ID"}\'
+                    """
+                    echo cmTestString
+                    def cmTestJson = readJSON text: cmTestString
+                    cmTestStatusId = cmTestJson['statusId']
+                    
+                    def cmTestStatus = 'not_tested'
+                    while (cmTestStatus in ['not_tested', 'queued', 'in_progress'] && testTime < testTimeout) {
+                        def cmTestStatusString = sh returnStdout:true, script: """
+                        #!/bin/bash
+                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/${cmTestStatusId}/ \\
+                            -H "Authorization: bearer $DR_API_KEY" \\
+                            -H "Accept: application/json"
+                        """
+                        echo cmTestStatusString
+                        def cmTestStatusJson = readJSON text: cmTestStatusString
+                        cmTestStatus = cmTestStatusJson['overallStatus']
+                        echo "custom model test status = " + cmTestStatus
+                        sleep(testPollInterval)
+                        testTime += testPollInterval
+                    }
+                    
+                }
+
+                if (cmTestStatus == 'failed') {
+                    error "Custom Model Test Failed!"
+                }
+                
             }
         }
         stage('Perform API Testing'){
