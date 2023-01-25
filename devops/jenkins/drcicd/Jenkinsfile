@@ -52,7 +52,7 @@ pipeline {
                             -F 'baseEnvironmentId=$CMEID' \\
                             ${cmFilesCurlArgs}
                         """
-                        def cmVersionJson = readJSON text: cmVersionString
+                        // def cmVersionJson = readJSON text: cmVersionString
                         echo cmVersionString
 
                     }
