@@ -1,6 +1,9 @@
 pipeline {
     agent any
 
+    // some global variables
+    def cmId = ''
+
     stages {
         stage('Init') {
             steps {
@@ -31,7 +34,7 @@ pipeline {
                         '''
                         def cmJson = readJSON text: cmString
                         echo cmString
-                        def cmId = cmJson['id']
+                        cmId = cmJson['id']
                         echo "custom model id = " + cmId
 
                         def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
@@ -45,7 +48,7 @@ pipeline {
 
                         def cmVersionString = sh returnStdout:true, script: """
                         #!/bin/bash
-                        curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions \\
+                        curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions/ \\
                             -H 'Authorization: bearer ${drapikey}' \\
                             -H 'Content-Type: multipart/form-data' \\
                             -H 'Accept: application/json' \\
