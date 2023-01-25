@@ -1,5 +1,5 @@
 // define global vars for use across stages
-def cmId
+def cmId, cmVersionId
 
 pipeline {
     agent any
@@ -13,8 +13,7 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING INIT STEPS =================='
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
-                sh 'echo $CME_ID'
-                sh 'echo $APP_SERVER; ls -lart'
+                sh 'echo $CME_ID $APP_SERVER; ls -lart'
             }
         }
         stage('DRUM Testing') {
@@ -35,8 +34,8 @@ pipeline {
                         -H "Accept: application/json" \\
                         -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''
-                    def cmJson = readJSON text: cmString
                     echo cmString
+                    def cmJson = readJSON text: cmString
                     cmId = cmJson['id']
                     echo "custom model id = " + cmId
 
@@ -47,8 +46,6 @@ pipeline {
                         cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
                     }
 
-                    echo cmFilesCurlArgs
-
                     def cmVersionString = sh returnStdout:true, script: """
                     #!/bin/bash
                     curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/ \\
@@ -58,8 +55,29 @@ pipeline {
                         -F 'baseEnvironmentId=$CME_ID' \\
                         ${cmFilesCurlArgs}
                     """
-                    // def cmVersionJson = readJSON text: cmVersionString
                     echo cmVersionString
+                    def cmVersionJson = readJSON text: cmVersionString
+                    cmVersionId = cmVersionJson['id']
+                    echo "custom model version id = " + cmVersionId
+
+                }
+                    
+            }
+        }
+        stage('Build Custom Model Dependencies') {
+            steps {
+                sh 'echo ================= RUNNING CM BUILD STEPS =================='
+                script {
+                    def cmBuildString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                        -H "Authorization: bearer $DR_API_KEY" \\
+                        -H "Accept: application/json"
+                    """
+                    echo cmBuildString
+                    def cmBuildJson = readJSON text: cmBuildString
+                    cmBuildStatus = cmBuildJson['buildStatus']
+                    echo "custom model build status = " + cmBuildStatus
 
                 }
                     
