@@ -39,7 +39,7 @@ pipeline {
 
                         def cmFilesLs = sh returnStdout:true, script: 'ls *.{txt,pkl,py}'
                         def cmFiles = cmFilesLs.split('\n')
-                        def cmFilesCurlArgs
+                        def cmFilesCurlArgs = ''
                         for (cmFile in cmFiles) {
                             cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
                         }
