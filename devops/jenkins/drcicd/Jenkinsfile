@@ -180,30 +180,39 @@ pipeline {
                     """
                     echo cmDeploymentString
                     def cmDeploymentJson = readJSON text: cmDeploymentString
-                    cmDeploymentStatusId = cmDeploymentJson['id']
+                    deploymentId = cmDeploymentJson['id']
                     
-                    def cmDeploymentStatusJson
-                    def cmDeploymentStatus = 'INITIALIZED'
-                    while (cmDeploymentStatus in ['INITIALIZED'] && deployTime < deployTimeout) {
-                        def cmDeploymentStatusString = sh returnStdout:true, script: """
-                        #!/bin/bash
-                        curl -sL $APP_SERVER/api/v2/status/${cmDeploymentStatusId}/ \\
-                            -H "Authorization: bearer $DR_API_KEY" \\
-                            -H "Accept: application/json"
-                        """
-                        echo cmDeploymentStatusString
-                        cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
-                        cmDeploymentStatus = cmDeploymentStatusJson['status']
-                        echo "custom model deployment status = " + cmDeploymentStatus
-                        sleep(deployPollInterval)
-                        deployTime += deployTimeout
-                    }
+                    // def cmDeploymentStatusJson
+                    // def cmDeploymentStatus = 'INITIALIZED'
+                    // while (cmDeploymentStatus in ['INITIALIZED'] && deployTime < deployTimeout) {
+                    //     def cmDeploymentStatusString = sh returnStdout:true, script: """
+                    //     #!/bin/bash
+                    //     curl -sL $APP_SERVER/api/v2/status/${cmDeploymentStatusId}/ \\
+                    //         -H "Authorization: bearer $DR_API_KEY" \\
+                    //         -H "Accept: application/json"
+                    //     """
+                    //     echo cmDeploymentStatusString
+                    //     cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
+                    //     cmDeploymentStatus = cmDeploymentStatusJson['status']
+                    //     echo "custom model deployment status = " + cmDeploymentStatus
+                    //     sleep(deployPollInterval)
+                    //     deployTime += deployTimeout
+                    // }
+
+                    def cmDeploymentStatusString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s $APP_SERVER/api/v2/deployments/$deploymentId/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Accept: application/json' \\
+                    """
+                    echo cmDeploymentStatusString
+                    cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
+                    cmDeploymentStatus = cmDeploymentStatusJson['status']
+                    echo "custom model deployment status = " + cmDeploymentStatus
 
                     if (cmDeploymentStatus != 'active') {
                         error "Custom Model Deployment Failed!"
                     }
-
-                    deploymentId = cmDeploymentStatusJson['id']
                     
                 }
                 
