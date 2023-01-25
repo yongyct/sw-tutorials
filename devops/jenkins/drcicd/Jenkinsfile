@@ -6,6 +6,7 @@ pipeline {
             steps {
                 sh 'echo ================= RUNNING INIT STEPS =================='
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
+                sh 'echo $CMEID'
                 sh 'echo $APPSERVER; ls -lart'
             }
         }
@@ -27,10 +28,32 @@ pipeline {
                             -H "Content-Type: application/json" \\
                             -H "Accept: application/json" \\
                             -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
-                    '''
+                        '''
                         def cmJson = readJSON text: cmString
                         echo cmString
-                        echo cmJson['id']
+                        def cmId = cmJson['id']
+                        echo 'custom model id = $cmId'
+
+                        def cmFilesLs = sh returnStdout:true, script: 'ls'
+                        def cmFiles = cmFilesLs.split(' ')
+                        def cmFilesCurlArgs = ''
+                        for (cmFile in cmFiles) {
+                            cmFilesCurlArgs += '-F "file: @./$cmFile" -F "filePath: $cmFile" '
+                        }
+
+
+                        def cmVersionString = sh returnStdout:true, script: '''
+                        #!/bin/bash
+                        curl -s -X POST $APPSERVER/api/v2/customModels/$cmJson['id']/versions \\
+                            -H "Authorization: bearer $drapikey" \\
+                            -H "Content-Type: multipart/form-data" \\
+                            -H "Accept: application/json" \\
+                            -F "baseEnvironmentId: $CMEID" \\
+                            $cmFilesCurlArgs
+                        '''
+                        def cmVersionJson = readJSON text: cmVersionString
+                        echo cmVersionString
+
                     }
                     
                 }
