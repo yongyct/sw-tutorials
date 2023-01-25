@@ -34,11 +34,14 @@ pipeline {
                         def cmId = cmJson['id']
                         echo "custom model id = " + cmId
 
-                        def cmFilesLs = sh returnStdout:true, script: 'ls'
+                        def cmFilesLs = sh returnStdout:true, script: '''
+                        #!/bin/bash
+                        ls
+                        '''
                         def cmFiles = cmFilesLs.split(' ')
                         def cmFilesCurlArgs = ''
                         for (cmFile in cmFiles) {
-                            cmFilesCurlArgs += '-F "file: @./$cmFile" -F "filePath: $cmFile" '
+                            cmFilesCurlArgs += '-F "file: @./' + cmFile + ' -F "filePath: $cmFile" '
                         }
 
                         echo cmFilesCurlArgs
