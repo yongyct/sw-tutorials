@@ -46,7 +46,7 @@ pipeline {
                         def cmVersionString = sh returnStdout:true, script: """
                         #!/bin/bash
                         curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions \\
-                            -H 'Authorization: bearer ${drapikey} \\
+                            -H 'Authorization: bearer ${drapikey}' \\
                             -H 'Content-Type: multipart/form-data' \\
                             -H 'Accept: application/json' \\
                             -F 'baseEnvironmentId=$CMEID' \\
