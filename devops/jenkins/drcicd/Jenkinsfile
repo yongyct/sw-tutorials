@@ -43,15 +43,15 @@ pipeline {
 
                         echo cmFilesCurlArgs
 
-                        def cmVersionString = sh returnStdout:true, script: '''
+                        def cmVersionString = sh returnStdout:true, script: """
                         #!/bin/bash
                         curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions \\
-                            -H "Authorization: bearer $drapikey" \\
-                            -H "Content-Type: multipart/form-data" \\
-                            -H "Accept: application/json" \\
-                            -F "baseEnvironmentId=$CMEID" \\
+                            -H 'Authorization: bearer $drapikey \\
+                            -H 'Content-Type: multipart/form-data' \\
+                            -H 'Accept: application/json' \\
+                            -F 'baseEnvironmentId=$CMEID' \\
                             ${cmFilesCurlArgs}
-                        '''
+                        """
                         def cmVersionJson = readJSON text: cmVersionString
                         echo cmVersionString
 
