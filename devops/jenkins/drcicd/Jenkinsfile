@@ -5,7 +5,7 @@ pipeline {
     agent any
 
     environment {
-        DRAPIKEY = credentials($DRAPIKEY_CREDS_ID)
+        DR_API_KEY = credentials('DR_API_KEY')
     }
 
     stages {
@@ -15,7 +15,7 @@ pipeline {
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
                 sh 'echo $CME_ID'
                 sh 'echo $APP_SERVER; ls -lart'
-                sh 'echo $DRAPIKEY'
+                sh 'echo $DR_API_KEY'
             }
         }
         stage('DRUM Testing') {
