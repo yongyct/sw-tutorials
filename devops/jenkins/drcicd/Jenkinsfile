@@ -32,7 +32,7 @@ pipeline {
                         def cmJson = readJSON text: cmString
                         echo cmString
                         def cmId = cmJson['id']
-                        echo 'custom model id = $cmId'
+                        echo custom model id = $cmId
 
                         def cmFilesLs = sh returnStdout:true, script: 'ls'
                         def cmFiles = cmFilesLs.split(' ')
@@ -41,18 +41,20 @@ pipeline {
                             cmFilesCurlArgs += '-F "file: @./$cmFile" -F "filePath: $cmFile" '
                         }
 
+                        echo $cmFilesCurlArgs
 
-                        def cmVersionString = sh returnStdout:true, script: '''
-                        #!/bin/bash
-                        curl -s -X POST $APPSERVER/api/v2/customModels/$cmJson['id']/versions \\
-                            -H "Authorization: bearer $drapikey" \\
-                            -H "Content-Type: multipart/form-data" \\
-                            -H "Accept: application/json" \\
-                            -F "baseEnvironmentId: $CMEID" \\
-                            $cmFilesCurlArgs
-                        '''
-                        def cmVersionJson = readJSON text: cmVersionString
-                        echo cmVersionString
+
+                        // def cmVersionString = sh returnStdout:true, script: '''
+                        // #!/bin/bash
+                        // curl -s -X POST $APPSERVER/api/v2/customModels/$cmId/versions \\
+                        //     -H "Authorization: bearer $drapikey" \\
+                        //     -H "Content-Type: multipart/form-data" \\
+                        //     -H "Accept: application/json" \\
+                        //     -F "baseEnvironmentId: $CMEID" \\
+                        //     $cmFilesCurlArgs
+                        // '''
+                        // def cmVersionJson = readJSON text: cmVersionString
+                        // echo cmVersionString
 
                     }
                     
