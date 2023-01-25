@@ -38,19 +38,19 @@ pipeline {
                         def cmFiles = cmFilesLs.split('\n')
                         def cmFilesCurlArgs = ''
                         for (cmFile in cmFiles) {
-                            cmFilesCurlArgs += '-F "file: @./' + cmFile + '" -F "filePath: ' + cmFile + '" '
+                            cmFilesCurlArgs += '-F "file=@./' + cmFile + '" -F "filePath=' + cmFile + '" '
                         }
 
                         echo cmFilesCurlArgs
 
                         def cmVersionString = sh returnStdout:true, script: '''
                         #!/bin/bash
-                        curl -s -X POST $APPSERVER/api/v2/customModels/$cmId/versions \\
+                        curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions \\
                             -H "Authorization: bearer $drapikey" \\
                             -H "Content-Type: multipart/form-data" \\
                             -H "Accept: application/json" \\
-                            -F "baseEnvironmentId: $CMEID" \\
-                            $cmFilesCurlArgs
+                            -F "baseEnvironmentId=$CMEID" \\
+                            ${cmFilesCurlArgs}
                         '''
                         def cmVersionJson = readJSON text: cmVersionString
                         echo cmVersionString
