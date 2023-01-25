@@ -1,5 +1,5 @@
 // define global vars for use across stages
-def cmId, cmVersionId
+def cmId, cmVersionId, deploymentId
 
 pipeline {
     agent any
@@ -97,7 +97,7 @@ pipeline {
                         buildTime += buildPollInterval
                     }
 
-                    if (cmBuildStatus == 'failed') {
+                    if (cmBuildStatus != 'success') {
                         error "Custom Model Build Failed!"
                     }
 
@@ -108,7 +108,7 @@ pipeline {
         stage('Test Custom Model') {
             //TODO: handle and fill in datasetId
             steps {
-                sh 'echo ================= RUNNING CM TEST STEPS =================='
+                sh 'echo ================= RUNNING CM TESTING STEPS =================='
                 script {
                     def testTimeout = 600
                     def testTime = 0
@@ -130,21 +130,80 @@ pipeline {
                     while (cmTestStatus in ['not_tested', 'queued', 'in_progress'] && testTime < testTimeout) {
                         def cmTestStatusString = sh returnStdout:true, script: """
                         #!/bin/bash
-                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/${cmTestStatusId}/ \\
+                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmTestStatusId}/ \\
                             -H "Authorization: bearer $DR_API_KEY" \\
                             -H "Accept: application/json"
                         """
                         echo cmTestStatusString
                         def cmTestStatusJson = readJSON text: cmTestStatusString
-                        cmTestStatus = cmTestStatusJson['overallStatus']
+                        cmTestStatus = cmTestStatusJson['data'][0]['overallStatus']
                         echo "custom model test status = " + cmTestStatus
                         sleep(testPollInterval)
                         testTime += testPollInterval
                     }
 
-                    if (cmTestStatus == 'failed') {
+                    if (cmTestStatus != 'succeeded') {
                         error "Custom Model Test Failed!"
                     }
+                    
+                }
+                
+            }
+        }
+        stage('Deploy Custom Model') {
+            steps {
+                sh 'echo ================= RUNNING CM DEPLOY STEPS =================='
+                script {
+                    def deployTimeout = 600
+                    def deployTime = 0
+                    def deployPollInterval = 5
+                    
+                    def cmPackageString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/modelPackages/fromCustomModelVersion/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"customModelVersionId":"$cmVersionId"}\'
+                    """
+                    echo cmPackageString
+                    def cmPackageJson = readJSON text: cmPackageString
+                    cmPackageId = cmPackageJson['id']
+
+                    def cmDeploymentString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/deployment/fromModelPackage/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"modelPackageId":"$cmPackageId","predictionEnvironmentId":"$PE_ID","label":"complication Jenkins Test","importance":"LOW"}\'
+                    """
+                    echo cmDeploymentString
+                    def cmDeploymentJson = readJSON text: cmDeploymentString
+                    cmDeploymentStatusId = cmDeploymentJson['id']
+                    
+                    def cmDeploymentStatusJson
+                    def cmDeploymentStatus = 'INITIALIZED'
+                    while (cmDeploymentStatus in ['INITIALIZED'] && deployTime < deployTimeout) {
+                        def cmDeploymentStatusString = sh returnStdout:true, script: """
+                        #!/bin/bash
+                        curl -sL $APP_SERVER/api/v2/status/${cmDeploymentStatusId}/ \\
+                            -H "Authorization: bearer $DR_API_KEY" \\
+                            -H "Accept: application/json"
+                        """
+                        echo cmDeploymentStatusString
+                        cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
+                        cmDeploymentStatus = cmDeploymentStatusJson['status']
+                        echo "custom model deployment status = " + cmDeploymentStatus
+                        sleep(deployPollInterval)
+                        deployTime += deployTimeout
+                    }
+
+                    if (cmDeploymentStatus != 'active') {
+                        error "Custom Model Deployment Failed!"
+                    }
+
+                    deploymentId = cmDeploymentStatusJson['id']
                     
                 }
                 
@@ -153,7 +212,15 @@ pipeline {
         stage('Perform API Testing'){
             steps {
                 sh 'echo ================= RUNNING API TESTING STEPS =================='
-                sh 'curl -s ifconfig.me'
+                sh """
+                #!/bin/bash
+                curl -s -X POST $PRED_SERVER/predApi/v1.0/deployments/${deploymentId}/predictions \\
+                    -H "Authorization: bearer $DR_API_KEY" \\
+                    -H "DataRobot-Key: cc0e0c01-8463-3e63-4794-5bea42900997" \\
+                    -H "Content-Type: text/csv; charset=UTF-8" \\
+                    -H "Accept: text/csv" \\
+                    --data-binary @./surgical-dataset-test.csv | head
+                """
             }
         }
     }
