@@ -97,10 +97,10 @@ pipeline {
                         buildTime += buildPollInterval
                     }
 
-                }
+                    if (cmBuildStatus == 'failed') {
+                        error "Custom Model Build Failed!"
+                    }
 
-                if (cmBuildStatus == 'failed') {
-                    error "Custom Model Build Failed!"
                 }
                 
             }
@@ -141,11 +141,11 @@ pipeline {
                         sleep(testPollInterval)
                         testTime += testPollInterval
                     }
-                    
-                }
 
-                if (cmTestStatus == 'failed') {
-                    error "Custom Model Test Failed!"
+                    if (cmTestStatus == 'failed') {
+                        error "Custom Model Test Failed!"
+                    }
+                    
                 }
                 
             }
