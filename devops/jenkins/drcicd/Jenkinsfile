@@ -4,13 +4,18 @@ def cmId
 pipeline {
     agent any
 
+    environment {
+        DRAPIKEY = credentials($DRAPIKEY_CREDS_ID)
+    }
+
     stages {
         stage('Init') {
             steps {
                 sh 'echo ================= RUNNING INIT STEPS =================='
                 sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
-                sh 'echo $CMEID'
-                sh 'echo $APPSERVER; ls -lart'
+                sh 'echo $CME_ID'
+                sh 'echo $APP_SERVER; ls -lart'
+                sh 'echo $DRAPIKEY'
             }
         }
         stage('DRUM Testing') {
@@ -26,7 +31,7 @@ pipeline {
                     script {
                         def cmString = sh returnStdout:true, script: '''
                         #!/bin/bash
-                        curl -s -X POST $APPSERVER/api/v2/customModels/ \\
+                        curl -s -X POST $APP_SERVER/api/v2/customModels/ \\
                             -H "Authorization: bearer $drapikey" \\
                             -H "Content-Type: application/json" \\
                             -H "Accept: application/json" \\
@@ -48,11 +53,11 @@ pipeline {
 
                         def cmVersionString = sh returnStdout:true, script: """
                         #!/bin/bash
-                        curl -s -X POST $APPSERVER/api/v2/customModels/${cmId}/versions/ \\
+                        curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/ \\
                             -H 'Authorization: bearer ${drapikey}' \\
                             -H 'Content-Type: multipart/form-data' \\
                             -H 'Accept: application/json' \\
-                            -F 'baseEnvironmentId=$CMEID' \\
+                            -F 'baseEnvironmentId=$CME_ID' \\
                             ${cmFilesCurlArgs}
                         """
                         // def cmVersionJson = readJSON text: cmVersionString
@@ -61,10 +66,6 @@ pipeline {
                     }
                     
                 }
-                sh '''
-                    pwd
-                    ls -lrat
-                '''
             }
         }
         stage('Perform API Testing'){
@@ -79,7 +80,7 @@ pipeline {
         always {
             echo "DR CICD PIPELINE DONE"
             withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
-                sh "curl -s -X DELETE $APPSERVER/api/v2/customModels/${cmId} -H 'Authorization: bearer ${drapikey}'"
+                sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer ${drapikey}'"
             }
             deleteDir()
         }
