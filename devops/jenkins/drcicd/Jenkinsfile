@@ -123,14 +123,14 @@ pipeline {
                         -d \'{"customModelId": "$cmId","customModelVersionId":"$cmVersionId","datasetId": "$TEST_DS_ID"}\'
                     """
                     echo cmTestString
-                    def cmTestJson = readJSON text: cmTestString
-                    cmTestStatusId = cmTestJson['statusId']
+                    // def cmTestJson = readJSON text: cmTestString
+                    // cmTestStatusId = cmTestJson['statusId']
                     
                     def cmTestStatus = 'not_tested'
                     while (cmTestStatus in ['not_tested', 'queued', 'in_progress'] && testTime < testTimeout) {
                         def cmTestStatusString = sh returnStdout:true, script: """
                         #!/bin/bash
-                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmTestStatusId} \\
+                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmId} \\
                             -H "Authorization: bearer $DR_API_KEY" \\
                             -H "Accept: application/json"
                         """
