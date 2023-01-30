@@ -32,7 +32,7 @@ pipeline {
                         -H "Authorization: bearer $DR_API_KEY" \\
                         -H "Content-Type: application/json" \\
                         -H "Accept: application/json" \\
-                        -d \'{"name": "Jenkins Test","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
+                        -d \'{"name": "Org A - Use Case 1","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
                     '''
                     echo cmString
                     def cmJson = readJSON text: cmString
@@ -176,7 +176,7 @@ pipeline {
                         -H 'Authorization: bearer $DR_API_KEY' \\
                         -H 'Content-Type: application/json' \\
                         -H 'Accept: application/json' \\
-                        -d \'{"modelPackageId":"$cmPackageId","predictionEnvironmentId":"$PE_ID","label":"complication Jenkins Test","importance":"LOW"}\'
+                        -d \'{"modelPackageId":"$cmPackageId","predictionEnvironmentId":"$PE_ID","label":"Org A - Use Case 1","importance":"LOW"}\'
                     """
                     echo cmDeploymentString
                     def cmDeploymentJson = readJSON text: cmDeploymentString
@@ -214,6 +214,18 @@ pipeline {
                         error "Custom Model Deployment Failed!"
                     }
 
+
+                    sh """
+                    #!/bin/bash
+                    curl -s -X PATCH $APP_SERVER/api/v2/customModels/${cmId}/trainingData/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"datasetId":"63d0dc3746c79d38dd18fc66"}\'
+                    """
+
+                    sleep(120)
+
                     sh """
                     #!/bin/bash
                     curl -s -X PATCH $APP_SERVER/api/v2/deployments/$deploymentId/settings/ \\
@@ -243,13 +255,34 @@ pipeline {
                 """
             }
         }
+
+        stage('Generate Compliance Docs & Fairness Metrics'){
+            steps {
+                sh 'echo ================= RUNNING API TESTING STEPS =================='
+                sh """
+                #!/bin/bash
+                curl -s $APP_SERVER/api/v2/automatedDocuments/63d259bf76dd05d4f0447e34/ \\
+                    -H "Authorization: bearer $DR_API_KEY"
+                """
+                sh """
+                #!/bin/bash
+                curl -s $APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_summary.png?preview=true&chartTitle=Aggregate+Fairness&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity \\
+                    -H "Authorization: bearer $DR_API_KEY"
+                """
+                sh """
+                #!/bin/bash
+                curl -s $APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_over_time.png?preview=true&chartTitle=Fairness+over+Time&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity&selectedLabels[]=gender&selectedColors[]=turquoise \\
+                    -H "Authorization: bearer $DR_API_KEY"
+                """
+            }
+        }
     }
 
     post {
         always {
             echo "DR CICD PIPELINE DONE"
             // sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer $DR_API_KEY'"
-            deleteDir()
+            // deleteDir()
         }
     }
 }
