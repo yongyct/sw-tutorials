@@ -213,6 +213,17 @@ pipeline {
                     if (cmDeploymentStatus != 'active') {
                         error "Custom Model Deployment Failed!"
                     }
+
+                    sh """
+                    #!/bin/bash
+                    curl -s -X PATCH $APP_SERVER/api/v2/deployments/$deploymentId/settings/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"targetDrift":{"enabled":true},"biasAndFairness":{"fairnessThreshold":"0.5","protectedFeatures":["gender"],"preferableTargetValue":"True","fairnessMetricsSet":"proportionalParity"},"segmentAnalysis":{"enabled":true,"attributes":["gender"]},"associationId":{"requiredInPredictionRequests":false}}\'
+                    """
+
+                    sleep(60)
                     
                 }
                 
