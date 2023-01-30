@@ -261,17 +261,17 @@ pipeline {
                 sh 'echo ================= RUNNING API TESTING STEPS =================='
                 sh """
                 #!/bin/bash
-                curl -s -O "compliance.docx" "$APP_SERVER/api/v2/automatedDocuments/63d259bf76dd05d4f0447e34/" \\
+                curl -s -o "compliance.docx" "$APP_SERVER/api/v2/automatedDocuments/63d259bf76dd05d4f0447e34/" \\
                     -H "Authorization: bearer $DR_API_KEY"
                 """
                 sh """
                 #!/bin/bash
-                curl -s "$APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_summary.png?preview=true&chartTitle=Aggregate+Fairness&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity" \\
+                curl -s -o "per_feature_fairness_summary.png" "$APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_summary.png?preview=true&chartTitle=Aggregate+Fairness&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity" \\
                     -H "Authorization: bearer $DR_API_KEY"
                 """
                 sh """
                 #!/bin/bash
-                curl -s "$APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_over_time.png?preview=true&chartTitle=Fairness+over+Time&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity&selectedLabels[]=gender&selectedColors[]=turquoise" \\
+                curl -s -o "per_feature_fairness_over_time.png" "$APP_SERVER/deployment/63d7cb717ca65c3b5293410b/per_feature_fairness_over_time.png?preview=true&chartTitle=Fairness+over+Time&start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&valueType=relative&fairnessMetric=proportionalParity&selectedLabels[]=gender&selectedColors[]=turquoise" \\
                     -H "Authorization: bearer $DR_API_KEY"
                 """
             }
