@@ -1,33 +1,283 @@
+// define global vars for use across stages
+def cmId, cmVersionId, deploymentId
+
 pipeline {
     agent any
+
+    environment {
+        DR_API_KEY = credentials('DR_API_KEY')
+    }
+
     stages {
         stage('Init') {
             steps {
-                sh 'cd devops/jenkins/drcicd/'
-                sh 'echo $APPSERVER'
-                sh 'echo $MODEL_ARGS'
+                sh 'echo ================= RUNNING INIT STEPS =================='
+                sh 'mv devops/jenkins/drcicd/*/* .; rm -rf -- */'
+                sh 'echo $CME_ID $APP_SERVER; ls -lart'
             }
         }
         stage('DRUM Testing') {
             steps {
-                sh 'drum --version'
+                sh 'echo ================= RUNNING DRUM STEPS =================='
+                // sh 'drum validation -cd . --input surgical-dataset-test.csv --positive-class-label 1 --negative-class-label 0 --target-type binary'
             }
         }
         stage('Upload Custom Model Artifacts') {
             steps {
-                withCredentials([string(credentialsId: 'c88d7131-ddc1-4686-81a7-70e7724c8979', variable: 'drapikey')]) {
-                    sh 'curl -XGET  https://app.datarobot.com/api/v2/users/ -H "Authorization: bearer $drapikey"'
+                sh 'echo ================= RUNNING CM UPLOAD STEPS =================='
+                script {
+                    def cmString = sh returnStdout:true, script: '''
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModels/ \\
+                        -H "Authorization: bearer $DR_API_KEY" \\
+                        -H "Content-Type: application/json" \\
+                        -H "Accept: application/json" \\
+                        -d \'{"name": "Org A - Use Case 1","customModelType":"inference","targetType": "Binary","targetName": "complication","positiveClassLabel": "1","negativeClassLabel": "0"}\'
+                    '''
+                    echo cmString
+                    def cmJson = readJSON text: cmString
+                    cmId = cmJson['id']
+                    echo "custom model id = " + cmId
+
+                    def cmFilesLs = sh returnStdout:true, script: 'ls *.{pkl,py}' //'ls *.{txt,pkl,py}'
+                    def cmFiles = cmFilesLs.split('\n')
+                    def cmFilesCurlArgs = ''
+                    for (cmFile in cmFiles) {
+                        cmFilesCurlArgs += "-F 'file=@./" + cmFile + "' -F 'filePath=" + cmFile + "' "
+                    }
+
+                    def cmVersionString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: multipart/form-data' \\
+                        -H 'Accept: application/json' \\
+                        -F 'baseEnvironmentId=$CME_ID' \\
+                        ${cmFilesCurlArgs}
+                    """
+                    echo cmVersionString
+                    def cmVersionJson = readJSON text: cmVersionString
+                    cmVersionId = cmVersionJson['id']
+                    echo "custom model version id = " + cmVersionId
+
                 }
-                sh '''
-                    pwd
-                    ls -lrat
-                '''
+                    
+            }
+        }
+        stage('Build Custom Model Dependencies') {
+            steps {
+                sh 'echo ================= RUNNING CM BUILD STEPS =================='
+                // script {
+                //     def buildTimeout = 600
+                //     def buildTime = 0
+                //     def buildPollInterval = 5
+
+                //     def cmBuildString = sh returnStdout:true, script: """
+                //     #!/bin/bash
+                //     curl -s -X POST $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                //         -H 'Authorization: bearer $DR_API_KEY' \\
+                //         -H 'Accept: application/json'
+                //     """
+                //     echo cmBuildString
+                //     def cmBuildJson = readJSON text: cmBuildString
+                //     cmBuildStatus = cmBuildJson['buildStatus']
+                //     echo "custom model build status = " + cmBuildStatus
+
+                //     while (cmBuildStatus in ['submitted', 'processing'] && buildTime < buildTimeout) {
+                //         cmBuildString = sh returnStdout:true, script: """
+                //         #!/bin/bash
+                //         curl -s -X GET $APP_SERVER/api/v2/customModels/${cmId}/versions/${cmVersionId}/dependencyBuild/ \\
+                //             -H 'Authorization: bearer $DR_API_KEY' \\
+                //             -H 'Accept: application/json'
+                //         """
+                //         cmBuildJson = readJSON text: cmBuildString
+                //         cmBuildStatus = cmBuildJson['buildStatus']
+                //         echo "custom model build status = " + cmBuildStatus
+                //         sleep(buildPollInterval)
+                //         buildTime += buildPollInterval
+                //     }
+
+                //     if (cmBuildStatus != 'success') {
+                //         error "Custom Model Build Failed!"
+                //     }
+
+                // }
+                
+            }
+        }
+        stage('Test Custom Model') {
+            //TODO: handle and fill in datasetId
+            steps {
+                sh 'echo ================= RUNNING CM TESTING STEPS =================='
+                script {
+                    def testTimeout = 600
+                    def testTime = 0
+                    def testPollInterval = 5
+                    
+                    def cmTestString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/customModelTests/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"customModelId": "$cmId","customModelVersionId":"$cmVersionId","datasetId": "$TEST_DS_ID"}\'
+                    """
+                    echo cmTestString
+                    // def cmTestJson = readJSON text: cmTestString
+                    // cmTestStatusId = cmTestJson['statusId']
+                    
+                    def cmTestStatus = 'not_tested'
+                    while (cmTestStatus in ['not_tested', 'queued', 'in_progress'] && testTime < testTimeout) {
+                        def cmTestStatusString = sh returnStdout:true, script: """
+                        #!/bin/bash
+                        curl -s -X GET $APP_SERVER/api/v2/customModelTests/?customModelId=${cmId} \\
+                            -H "Authorization: bearer $DR_API_KEY" \\
+                            -H "Accept: application/json"
+                        """
+                        echo cmTestStatusString
+                        def cmTestStatusJson = readJSON text: cmTestStatusString
+                        cmTestStatus = cmTestStatusJson['data'][0]['overallStatus']
+                        echo "custom model test status = " + cmTestStatus
+                        sleep(testPollInterval)
+                        testTime += testPollInterval
+                    }
+
+                    if (cmTestStatus != 'succeeded') {
+                        error "Custom Model Test Failed!"
+                    }
+                    
+                }
+                
+            }
+        }
+        stage('Deploy Custom Model') {
+            steps {
+                sh 'echo ================= RUNNING CM DEPLOY STEPS =================='
+                script {
+                    def deployTimeout = 600
+                    def deployTime = 0
+                    def deployPollInterval = 5
+                    
+                    def cmPackageString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/modelPackages/fromCustomModelVersion/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"customModelVersionId":"$cmVersionId"}\'
+                    """
+                    echo cmPackageString
+                    def cmPackageJson = readJSON text: cmPackageString
+                    cmPackageId = cmPackageJson['id']
+
+                    def cmDeploymentString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s -X POST $APP_SERVER/api/v2/deployments/fromModelPackage/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"modelPackageId":"$cmPackageId","predictionEnvironmentId":"$PE_ID","label":"Org A - Use Case 1","importance":"LOW"}\'
+                    """
+                    echo cmDeploymentString
+                    def cmDeploymentJson = readJSON text: cmDeploymentString
+                    deploymentId = cmDeploymentJson['id']
+                    
+                    // def cmDeploymentStatusJson
+                    // def cmDeploymentStatus = 'INITIALIZED'
+                    // while (cmDeploymentStatus in ['INITIALIZED'] && deployTime < deployTimeout) {
+                    //     def cmDeploymentStatusString = sh returnStdout:true, script: """
+                    //     #!/bin/bash
+                    //     curl -sL $APP_SERVER/api/v2/status/${cmDeploymentStatusId}/ \\
+                    //         -H "Authorization: bearer $DR_API_KEY" \\
+                    //         -H "Accept: application/json"
+                    //     """
+                    //     echo cmDeploymentStatusString
+                    //     cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
+                    //     cmDeploymentStatus = cmDeploymentStatusJson['status']
+                    //     echo "custom model deployment status = " + cmDeploymentStatus
+                    //     sleep(deployPollInterval)
+                    //     deployTime += deployTimeout
+                    // }
+
+                    def cmDeploymentStatusString = sh returnStdout:true, script: """
+                    #!/bin/bash
+                    curl -s $APP_SERVER/api/v2/deployments/$deploymentId/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Accept: application/json' \\
+                    """
+                    echo cmDeploymentStatusString
+                    cmDeploymentStatusJson = readJSON text: cmDeploymentStatusString
+                    cmDeploymentStatus = cmDeploymentStatusJson['status']
+                    echo "custom model deployment status = " + cmDeploymentStatus
+
+                    if (cmDeploymentStatus != 'active') {
+                        error "Custom Model Deployment Failed!"
+                    }
+
+
+                    sh """
+                    #!/bin/bash
+                    curl -s -X PATCH $APP_SERVER/api/v2/customModels/${cmId}/trainingData/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"datasetId":"63d0dc3746c79d38dd18fc66"}\'
+                    """
+
+                    sleep(60)
+
+                    sh """
+                    #!/bin/bash
+                    curl -s -X PATCH $APP_SERVER/api/v2/deployments/$deploymentId/settings/ \\
+                        -H 'Authorization: bearer $DR_API_KEY' \\
+                        -H 'Content-Type: application/json' \\
+                        -H 'Accept: application/json' \\
+                        -d \'{"targetDrift":{"enabled":true},"biasAndFairness":{"fairnessThreshold":"0.5","protectedFeatures":["gender"],"preferableTargetValue":"True","fairnessMetricsSet":"proportionalParity"},"segmentAnalysis":{"enabled":true,"attributes":["gender"]},"associationId":{"requiredInPredictionRequests":false}}\'
+                    """
+
+                    sleep(60)
+                    
+                }
+                
             }
         }
         stage('Perform API Testing'){
             steps {
-                sh 'curl ifconfig.me'
+                sh 'echo ================= RUNNING API TESTING STEPS =================='
+                sh """
+                #!/bin/bash
+                curl -s -X POST $PRED_SERVER/predApi/v1.0/deployments/${deploymentId}/predictions \\
+                    -H "Authorization: bearer $DR_API_KEY" \\
+                    -H "DataRobot-Key: cc0e0c01-8463-3e63-4794-5bea42900997" \\
+                    -H "Content-Type: text/csv; charset=UTF-8" \\
+                    -H "Accept: text/csv" \\
+                    --data-binary @./surgical-dataset-test.csv | head
+                """
             }
+        }
+
+        stage('Generate Compliance Docs & Fairness Metrics'){
+            steps {
+                sh 'echo ================= RUNNING API TESTING STEPS =================='
+                sh """
+                #!/bin/bash
+                curl -s -o "compliance.docx" "$APP_SERVER/api/v2/automatedDocuments/63d259bf76dd05d4f0447e34/" \\
+                    -H "Authorization: bearer $DR_API_KEY"
+                """
+                sh """
+                #!/bin/bash
+                curl -s -o "fairness.json" "$APP_SERVER/api/v2/deployments/63d7cb717ca65c3b5293410b/fairnessScoresOverTime/?start=2023-01-30T00:00:00.000Z&end=2023-01-31T00:00:00.000Z&modelId=6107739b052417d6d0a06748&bucketSize=PT1H&fairnessMetric=proportionalParity" \\
+                    -H "Authorization: bearer $DR_API_KEY"
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "DR CICD PIPELINE DONE"
+            // sh "curl -s -X DELETE $APP_SERVER/api/v2/customModels/${cmId}/ -H 'Authorization: bearer $DR_API_KEY'"
+            // deleteDir()
         }
     }
 }
