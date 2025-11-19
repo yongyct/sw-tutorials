@@ -4,9 +4,14 @@
 **/.ipynb_checkpoints/*
 **/__pycache__/*
 **/.DS_Store*
+**/.venv/*
 
 # dbt stuff
 **/dbt/**/logs/
 **/dbt/**/target/
 **/dbt/**/dbt_packages/
+
+# cs336
+aiml/cs336/assignment1-basics-main/tests/*
+aiml/cs336/**/*.pdf
 
