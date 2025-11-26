@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple
 class BPE:
 
     def __init__(self):
-        self.special_tokens: List[str] = [b'<|endoftoken|>']
+        self.special_tokens: List[str] = ['<|endoftoken|>']
         self.vocab: Dict[int, bytes] = {}
         self.reverse_vocab: Dict[int, bytes] = {}
         self.merges: List[Tuple[bytes, bytes]] = []
@@ -18,7 +18,7 @@ class BPE:
         pretokens = []
         pre_pretokens = []
         if self.special_tokens:
-            regex_split_pattern = "|".join(map(lambda x: regex.escape(x.decode("utf-8")), self.special_tokens))
+            regex_split_pattern = "|".join(map(lambda x: regex.escape(x), self.special_tokens))
             pre_pretokens = regex.split(regex_split_pattern, text)
             pre_pretokens = [pre_pretoken for pre_pretoken in pre_pretokens if pre_pretoken]
         else:
@@ -74,11 +74,11 @@ class BPE:
                 i += 1
         return tuple(new_pretoken_idx)
 
-    def train(self, input_path: str, vocab_size: int = 270, special_tokens = [b'<|endoftoken|>']) \
+    def train(self, input_path: str, vocab_size: int = 270, special_tokens = ['<|endoftoken|>']) \
         -> Tuple[Dict[int, bytes], List[Tuple[bytes, bytes]]]:
         # step 0: init
-        self.special_tokens = [special_token.encode("utf-8") if type(special_token) is str else special_token for special_token in special_tokens]
-        self.vocab = {idx: special_token for idx, special_token in enumerate(self.special_tokens)}
+        self.special_tokens = special_tokens
+        self.vocab = {idx: special_token.encode("utf-8") for idx, special_token in enumerate(self.special_tokens)}
         self.vocab.update({idx + len(self.special_tokens): bytes([idx]) for idx in range(256)})
         self.reverse_vocab = {v: k for k, v in self.vocab.items()}
         next_vocab_id = len(self.vocab.keys())
@@ -98,7 +98,7 @@ class BPE:
             pair_counts = self._count_pairs(pretoken_idx_freq)
             if not pair_counts:
                 break
-            max_idx_pair = max(pair_counts.items(), key=lambda x: (x[1], x[0]))[0]
+            max_idx_pair = max(pair_counts.items(), key=lambda x: (x[1], (self.vocab[x[0][0]], self.vocab[x[0][1]])))[0]
             # step 4: merge
             # print(self.vocab)
             new_pretoken_idx_freq = Counter()

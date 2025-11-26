@@ -95,7 +95,7 @@ class SimpleBPE:
             pair_counts = self._count_pairs(pretoken_idx_freq)
             if not pair_counts:
                 break
-            max_idx_pair = max(pair_counts.items(), key=lambda x: (x[1], x[0]))[0]
+            max_idx_pair = max(pair_counts.items(), key=lambda x: (x[1], (self.vocab[x[0][0]], self.vocab[x[0][1]])))[0]
             # step 4: merge
             # print(self.vocab)
             new_pretoken_idx_freq = Counter()
